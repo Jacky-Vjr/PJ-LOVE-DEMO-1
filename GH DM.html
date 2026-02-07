@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hidden Love Message AR</title>
+    <meta property="og:title" content="A Surprise Message for You ❤️">
+    <meta property="og:description" content="Open this link and use your hand to reveal the secret.">
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* --- AR LAYER --- */
+        #container { position: relative; width: 100vw; height: 100vh; display: none; /* ซ่อนก่อนถ้ายังไม่มีชื่อ */ }
+        #webcam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); z-index: 0; filter: brightness(0.5) contrast(1.2); }
+        #three-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        #status { position: absolute; bottom: 30px; width: 100%; text-align: center; color: #ff69b4; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #000; z-index: 3; pointer-events: none; }
+
+        /* --- FORM LAYER (หน้ากรอกชื่อ) --- */
+        #setup-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1a0b2e 0%, #4a0e2e 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10; color: white;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 400px; width: 90%;
+        }
+        h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 2px; }
+        input {
+            width: 100%; padding: 12px; margin: 10px 0;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);
+            color: white; border-radius: 8px; font-size: 16px; text-align: center;
+            outline: none; box-sizing: border-box;
+        }
+        input:focus { border-color: #ff69b4; }
+        button {
+            width: 100%; padding: 15px; margin-top: 20px;
+            background: #ff0055; color: white; border: none; border-radius: 8px;
+            font-size: 18px; font-weight: bold; cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background: #ff3377; transform: scale(1.05); }
+        .hidden { display: none !important; }
+        .link-box {
+            margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.5);
+            border-radius: 5px; word-break: break-all; font-size: 12px; color: #aaa;
+            display: none; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <div class="card">
+            <h1>❤️ Love AR Creator</h1>
+            <p style="color:#ccc; font-size:14px; margin-bottom:20px;">สร้างการ์ด AR เซอร์ไพรส์แฟน</p>
+            
+            <input type="text" id="input-boy" placeholder="ชื่อผู้ชาย (Name 1)" maxlength="10">
+            <input type="text" id="input-girl" placeholder="ชื่อผู้หญิง (Name 2)" maxlength="10">
+            
+            <button onclick="generateLink()">สร้างลิ้งค์ของขวัญ 🎁</button>
+            
+            <div id="result-area" class="link-box" onclick="copyLink()">
+                <span id="generated-link"></span>
+                <br><br><span style="color:#ff69b4">แตะเพื่อคัดลอกลิ้งค์</span>
+            </div>
+            
+            <p style="margin-top:20px; font-size:12px; color:rgba(255,255,255,0.5)">
+                เมื่อลูกค้าได้รับลิ้งค์ ระบบจะเริ่มทันทีโดยไม่ต้องกรอกชื่ออีก
+            </p>
+        </div>
+    </div>
+
+    <div id="container">
+        <div id="status">Waiting for hand gesture...</div>
+        <video id="webcam" autoplay playsinline muted></video>
+        </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
+            }
+        }
+    </script>
+
+    <script>
+        // --- LOGIC ส่วนสร้างลิ้งค์ ---
+        function generateLink() {
+            const boy = document.getElementById('input-boy').value.trim() || "HE";
+            const girl = document.getElementById('input-girl').value.trim() || "SHE";
+            
+            // สร้าง URL Parameter
+            const baseUrl = window.location.href.split('?')[0];
+            const finalUrl = `${baseUrl}?n1=${encodeURIComponent(boy)}&n2=${encodeURIComponent(girl)}`;
+            
+            const resBox = document.getElementById('result-area');
+            const linkText = document.getElementById('generated-link');
+            
+            linkText.innerText = finalUrl;
+            resBox.style.display = 'block';
+            
+            // ถ้าอยากลองเล่นเองเลย
+            // window.location.href = finalUrl;
+        }
+
+        function copyLink() {
+            const linkText = document.getElementById('generated-link').innerText;
+            navigator.clipboard.writeText(linkText).then(() => {
+                alert("คัดลอกลิ้งค์แล้ว! ส่งให้ลูกค้าได้เลย");
+            });
+        }
+
+        // เช็คว่ามีชื่อส่งมาใน URL ไหม? ถ้ามี ให้เริ่ม AR เลย
+        const params = new URLSearchParams(window.location.search);
+        const name1 = params.get('n1'); // ชื่อผู้ชาย
+        const name2 = params.get('n2'); // ชื่อผู้หญิง
+
+        if (name1 && name2) {
+            // ซ่อนหน้า Setup, โชว์หน้า AR
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('container').style.display = 'block';
+            // เริ่มระบบ AR (จะถูกเรียกใน module script ด้านล่าง)
+            window.startARSystem = true;
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+
+        // ถ้าไม่มี flag นี้ (คือไม่ได้มาจากลิ้งค์ที่มีชื่อ) ให้หยุดทำงาน
+        if (!window.startARSystem) {
+            throw new Error("Waiting for setup...");
+        }
+
+        // รับค่าชื่อจาก URL (Decode กลับมาเป็นภาษาไทย/อังกฤษ)
+        const params = new URLSearchParams(window.location.search);
+        const NAME_1 = decodeURIComponent(params.get('n1')).toUpperCase();
+        const NAME_2 = decodeURIComponent(params.get('n2')).toUpperCase();
+        
+        console.log("Start AR for:", NAME_1, "&", NAME_2);
+
+        // --- CONFIG ---
+        const PARTICLE_COUNT = 60000; 
+        const PARTICLE_SIZE = 0.15; 
+        
+        const COLORS = {
+            HEART: new THREE.Color('#ff0055'),
+            NAME1: new THREE.Color('#00ff44'), // สีชื่อ 1
+            CONNECT: new THREE.Color('#00ffff'), // สีคำเชื่อม
+            NAME2: new THREE.Color('#ffaaaa')  // สีชื่อ 2
+        };
+
+        let currentShapeName = 'HEART';
+        let targetRotation = { x: 0, y: 0 };
+        let prevHandPos = { x: 0, y: 0 };
+        let isPinching = false;
+        let targetScale = 1.0;
+
+        // --- THREE.JS ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
+        camera.position.z = 8;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setClearColor(0x000000, 0);
+        renderer.domElement.id = 'three-canvas';
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // --- GENERATORS ---
+        function createHeart(count) {
+            const arr = new Float32Array(count * 3);
+            for(let i=0; i<count; i++) {
+                const t = Math.random() * Math.PI * 2;
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                const z = (Math.random() - 0.5) * 6;
+                arr[i*3] = x * 0.25; arr[i*3+1] = y * 0.25; arr[i*3+2] = z * 0.25;
+            }
+            return arr;
+        }
+
+        // สร้าง Text แบบปรับขนาดอัตโนมัติ
+        function createTextParticles(text, count) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 1000; canvas.height = 400; // พื้นที่วาดใหญ่ขึ้น
+            
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,1000,400);
+            ctx.fillStyle = '#fff'; 
+            
+            // Auto Font Size: ถ้าชื่อยาว ลดขนาดฟอนต์ลง
+            const fontSize = text.length > 5 ? 120 : 180; 
+            ctx.font = `bold ${fontSize}px Arial`;
+            
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, 500, 200);
+            
+            const data = ctx.getImageData(0,0,1000,400).data;
+            const points = [];
+            // Sampling logic
+            const step = 2; 
+            for(let y=0; y<400; y+=step) {
+                for(let x=0; x<1000; x+=step) {
+                    if(data[(y*1000+x)*4] > 128) {
+                        points.push({
+                            x: (x/1000 - 0.5) * 20, // Width scale
+                            y: -(y/400 - 0.5) * 8   // Height scale
+                        });
+                    }
+                }
+            }
+            
+            const arr = new Float32Array(count * 3);
+            if(points.length===0) return arr;
+            for(let i=0; i<count; i++) {
+                const p = points[Math.floor(Math.random() * points.length)];
+                arr[i*3] = p.x + (Math.random()-0.5)*0.1;
+                arr[i*3+1] = p.y + (Math.random()-0.5)*0.1;
+                arr[i*3+2] = (Math.random()-0.5)*0.5;
+            }
+            return arr;
+        }
+
+        // Special: Name 2 + Hearts
+        function createName2WithHearts(text, count) {
+            const arr = new Float32Array(count * 3);
+            const textArr = createTextParticles(text, Math.floor(count*0.6));
+            
+            for(let i=0; i<Math.floor(count*0.6); i++) {
+                arr[i*3]=textArr[i*3]; arr[i*3+1]=textArr[i*3+1]; arr[i*3+2]=textArr[i*3+2];
+            }
+            
+            const heartCount = count - Math.floor(count*0.6);
+            for(let i=0; i<heartCount; i++) {
+                const idx = Math.floor(count*0.6) + i;
+                const t = Math.random() * Math.PI * 2;
+                const hx = 16 * Math.pow(Math.sin(t), 3); 
+                const hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                
+                arr[idx*3] = (Math.random()-0.5)*14 + (hx*0.04); 
+                arr[idx*3+1] = (Math.random()-0.5)*10 + (hy*0.04); 
+                arr[idx*3+2] = (Math.random()-0.5)*5;
+            }
+            return arr;
+        }
+
+        const Shapes = {
+            HEART: (count) => createHeart(count),
+            NAME1: (count) => createTextParticles(NAME_1, count), // ใช้ชื่อจาก URL
+            CONNECT: (count) => createTextParticles("LOVES", count), // หรือ MISSES / KISS
+            NAME2: (count) => createName2WithHearts(NAME_2, count) // ใช้ชื่อจาก URL
+        };
+
+        // --- PARTICLES ---
+        const geometry = new THREE.BufferGeometry();
+        const initialData = Shapes.HEART(PARTICLE_COUNT);
+        geometry.setAttribute('position', new THREE.BufferAttribute(initialData, 3));
+        geometry.setAttribute('aTarget', new THREE.BufferAttribute(initialData.slice(), 3));
+        const randoms = new Float32Array(PARTICLE_COUNT);
+        for(let i=0; i<PARTICLE_COUNT; i++) randoms[i] = Math.random();
+        geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1));
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: `
+                uniform float uTime; uniform float uMorph; uniform float uSize; uniform float uBeatActive;
+                attribute vec3 aTarget; attribute float aRandom; varying float vAlpha;
+                void main() {
+                    vec3 mixedPos = mix(position, aTarget, uMorph);
+                    float beatScale = 1.0;
+                    if(uBeatActive > 0.5) {
+                        float t = mod(uTime * 3.0, 3.14159 * 2.0);
+                        float beat1 = pow(max(0.0, sin(t)), 10.0) * 0.15; 
+                        float beat2 = pow(max(0.0, sin(t - 0.5)), 8.0) * 0.35; 
+                        beatScale = 1.0 + beat1 + beat2;
+                    }
+                    vec3 finalPos = mixedPos * beatScale;
+                    finalPos.x += sin(uTime + finalPos.y) * 0.02;
+                    finalPos.z += cos(uTime + finalPos.x) * 0.02;
+                    vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+                    gl_PointSize = uSize * (1.0 / -mvPosition.z);
+                    vAlpha = 0.8 + 0.2 * sin(uTime * 3.0 + aRandom * 10.0);
+                }
+            `,
+            fragmentShader: `uniform vec3 uColor; varying float vAlpha; void main() { float d=distance(gl_PointCoord,vec2(0.5)); if(d>0.5)discard; gl_FragColor=vec4(uColor,vAlpha); }`,
+            uniforms: {
+                uTime: { value: 0 }, uMorph: { value: 0 }, uSize: { value: PARTICLE_SIZE * 60 }, 
+                uColor: { value: COLORS.HEART }, uBeatActive: { value: 1.0 }
+            },
+            transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        let morphAlpha = 1; let targetColor = COLORS.HEART; let currentColor = COLORS.HEART.clone();
+
+        function setShape(type) {
+            if(type === currentShapeName) return;
+            let posData; let newColor; let beatActive = 0.0;
+            
+            if(type === 'HEART') { posData = Shapes.HEART(PARTICLE_COUNT); newColor = COLORS.HEART; beatActive = 1.0; }
+            else if(type === 'NAME1') { posData = Shapes.NAME1(PARTICLE_COUNT); newColor = COLORS.NAME1; }
+            else if(type === 'CONNECT') { posData = Shapes.CONNECT(PARTICLE_COUNT); newColor = COLORS.CONNECT; }
+            else if(type === 'NAME2') { posData = Shapes.NAME2(PARTICLE_COUNT); newColor = COLORS.NAME2; }
+
+            const currentPositions = geometry.attributes.aTarget.array;
+            geometry.attributes.position.array.set(currentPositions);
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.aTarget.array.set(posData);
+            geometry.attributes.aTarget.needsUpdate = true;
+            
+            currentShapeName = type; targetColor = newColor; morphAlpha = 0;
+            material.uniforms.uBeatActive.value = beatActive;
+            
+            // เปลี่ยน Status Text ตามชื่อ
+            let displayText = "";
+            if(type === 'HEART') displayText = "Heart Beat 💓";
+            else if(type === 'NAME1') displayText = NAME_1 + " 👍";
+            else if(type === 'CONNECT') displayText = "LOVES 👆";
+            else if(type === 'NAME2') displayText = NAME_2 + " 🤟";
+            
+            document.getElementById('status').innerText = displayText;
+            document.getElementById('status').style.color = beatActive ? '#ff0055' : '#00ff00';
+        }
+
+        // --- HAND TRACKING ---
+        let handLandmarker = undefined;
+        const video = document.getElementById('webcam');
+        let lastVideoTime = -1;
+
+        async function setupMediaPipe() {
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`, delegate: "GPU" },
+                runningMode: "VIDEO", numHands: 2
+            });
+            startWebcam();
+        }
+
+        function startWebcam() {
+            if (!handLandmarker) return;
+            navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } }).then((stream) => {
+                video.srcObject = stream;
+                video.addEventListener("loadeddata", predictWebcam);
+                video.play();
+            });
+        }
+
+        async function predictWebcam() {
+            window.requestAnimationFrame(predictWebcam);
+            if (handLandmarker && video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                try {
+                    const results = handLandmarker.detectForVideo(video, performance.now());
+                    if (results.landmarks && results.landmarks.length > 0) processHands(results.landmarks);
+                } catch(e) {}
+            }
+        }
+
+        function processHands(landmarksArray) {
+            let activeGestureFound = false;
+            let pointingHand = null; let pinchingHand = null;
+
+            for (let i = 0; i < landmarksArray.length; i++) {
+                const lm = landmarksArray[i];
+                
+                const indexUp = lm[8].y < lm[6].y;
+                const middleUp = lm[12].y < lm[10].y;
+                const ringUp = lm[16].y < lm[14].y;
+                const pinkyUp = lm[20].y < lm[18].y;
+                const thumbLen = Math.hypot(lm[4].x - lm[2].x, lm[4].y - lm[2].y);
+                const thumbUp = thumbLen > 0.05; 
+                const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+                const isPinchingNow = pinchDist < 0.05;
+
+                // Zoom roles
+                if (indexUp && !middleUp && !ringUp && !pinkyUp && !isPinchingNow) pointingHand = lm;
+                if (isPinchingNow) pinchingHand = lm;
+
+                // GESTURE LOGIC
+                // 1. PT -> NAME 2 (Girl)
+                if (thumbUp && indexUp && pinkyUp && !middleUp && !ringUp) { setShape('NAME2'); activeGestureFound = true; }
+                // 2. KID TUNG -> CONNECT (Loves)
+                else if (thumbUp && indexUp && !middleUp && !ringUp && !pinkyUp) { setShape('CONNECT'); activeGestureFound = true; }
+                // 3. JOK -> NAME 1 (Boy)
+                else if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) { setShape('NAME1'); activeGestureFound = true; }
+            }
+
+            // Zoom / Rotate
+            if (pointingHand && pinchingHand) {
+                const lm = pinchingHand;
+                const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+                targetScale = Math.max(1.0, 1.0 + (pinchDist - 0.02) * 8.0);
+            } 
+            else if (pinchingHand) {
+                const lm = pinchingHand;
+                if (!isPinching) { isPinching = true; prevHandPos = { x: lm[4].x, y: lm[4].y }; }
+                else {
+                    const dx = lm[4].x - prevHandPos.x; const dy = lm[4].y - prevHandPos.y;
+                    targetRotation.y += dx * 5.0; targetRotation.x += dy * 5.0;
+                    prevHandPos = { x: lm[4].x, y: lm[4].y };
+                }
+            } else { isPinching = false; }
+
+            if (!activeGestureFound && currentShapeName !== 'HEART') { setShape('HEART'); }
+        }
+        
+        setupMediaPipe();
+
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            material.uniforms.uTime.value = time;
+            if (morphAlpha < 1) { morphAlpha += 0.04; if (morphAlpha > 1) morphAlpha = 1; material.uniforms.uMorph.value = morphAlpha; }
+            currentColor.lerp(targetColor, 0.05); material.uniforms.uColor.value = currentColor;
+            if(currentShapeName!=='HEART') {
+                particles.rotation.x += (targetRotation.x - particles.rotation.x) * 0.1;
+                particles.rotation.y += (targetRotation.y - particles.rotation.y) * 0.1;
+            } else {
+                particles.rotation.x += (0 - particles.rotation.x) * 0.05;
+                particles.rotation.y += (0 - particles.rotation.y) * 0.05;
+            }
+            let s = particles.scale.x; s += (targetScale - s) * 0.1; particles.scale.setScalar(s);
+            renderer.render(scene, camera);
+        }
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+        animate();
+    </script>
+</body>
+</html>
